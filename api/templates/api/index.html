@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Bandwidths Chart</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+    <style>
+      canvas {
+        width: 100% !important;
+        height: 600px !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="myChart" width="100" height="100"></canvas>
+    <script>
+      const fetchChartData = async () => {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        let apiQueryString = "";
+        const device_id = urlParams.get("device_id") || "";
+        if (!device_id) {
+          return;
+        }
+        const end_time = urlParams.get("end_time");
+        if (end_time) {
+          apiQueryString += `&end_time=${end_time}`;
+        }
+        const window_time = urlParams.get("window_time");
+        if (window_time) {
+          apiQueryString += `&window_time=${window_time}`;
+        }
+        const num_windows = urlParams.get("num_windows");
+        if (num_windows) {
+          apiQueryString += `&num_windows=${num_windows}`;
+        }
+
+        const api_url = `http://localhost:8000/api/get_bandwidths?device_id=${device_id}${apiQueryString}`;
+        const response = await fetch(api_url);
+        const data = await response.json();
+        let maxValue = 0;
+        for (let i = 0; i < data.bytes_ts.length; i++) {
+          maxValue = Math.max(maxValue, data.bytes_ts[i], data.bytes_fs[i]);
+        }
+
+        var ctx = document.getElementById("myChart");
+        var myChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: data.window_ends,
+            datasets: [
+              {
+                label: "Bytes To Server",
+                data: data.bytes_ts,
+                backgroundColor: ["rgba(255, 99, 132, 0.2)"],
+                borderColor: ["rgba(255, 99, 132, 1)"],
+                borderWidth: 1,
+              },
+              {
+                label: "Bytes From Server",
+                data: data.bytes_fs,
+                backgroundColor: ["rgba(54, 162, 235, 0.2)"],
+                borderColor: ["rgba(54, 162, 235, 0.2)"],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            title: {
+              display: true,
+              text: "Bandwidth Chart",
+              fontSize: 40,
+            },
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true,
+                    suggestedMax: maxValue * 1.1,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      };
+      fetchChartData();
+    </script>
+  </body>
+</html>
