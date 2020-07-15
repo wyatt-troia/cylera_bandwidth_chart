@@ -8,15 +8,55 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
     <style>
       canvas {
-        width: 100% !important;
+        width: 80% !important;
         height: 600px !important;
+      }
+      #container {
+        display: flex;
+      }
+      #devicesContainer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 20%;
+        margin: 0rem 1rem;
+      }
+      .device {
+        border: 1px solid black;
+        padding: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-radius: 5px;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+      }
+      .deviceRightColumn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
       }
     </style>
   </head>
 
   <body>
-    <canvas id="myChart" width="100" height="100"></canvas>
+    <div id="container">
+      <div id="devicesContainer">DEVICES</div>
+      <canvas id="myChart" width="100" height="100"></canvas>
+    </div>
     <script>
+      const createFetchDeviceDataCallback = (deviceID) => () => {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        urlParams.set("device_id", deviceID);
+
+        window.history.replaceState(
+          {},
+          "",
+          `${location.pathname}?${urlParams}`
+        );
+        fetchChartData();
+      };
+
       const fetchChartData = async () => {
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
@@ -38,7 +78,7 @@
           apiQueryString += `&num_windows=${num_windows}`;
         }
 
-        const api_url = `http://localhost:8000/api/get_bandwidths?device_id=${device_id}${apiQueryString}`;
+        const api_url = `http://localhost:8000/api/get_chart_data?device_id=${device_id}${apiQueryString}`;
         const response = await fetch(api_url);
         const data = await response.json();
         let maxValue = 0;
@@ -88,6 +128,51 @@
             },
           },
         });
+
+        const devicesContainerDiv = document.getElementById("devicesContainer");
+        // create and appending device divs to devicesContainer
+        for (let i = 0; i < data.devices.length; i++) {
+          const device = data.devices[i];
+
+          const deviceDiv = document.createElement("div");
+          deviceDiv.classList.add("device");
+
+          const deviceDivLeftColumn = document.createElement("div");
+          deviceDivLeftColumn.classList.add("deviceLeftColumn");
+          deviceDiv.appendChild(deviceDivLeftColumn);
+          const deviceDivLeftColumnTextDiv = document.createElement("div");
+          deviceDivLeftColumnTextDiv.classList.add("deviceLeftColumnText");
+
+          // left column (model and location)
+          let p = document.createElement("p");
+          let text = document.createTextNode(`${device.model}`);
+          p.appendChild(text);
+          deviceDivLeftColumnTextDiv.append(p);
+
+          p = document.createElement("p");
+          text = document.createTextNode(`${device.location}`);
+          p.appendChild(text);
+          deviceDivLeftColumnTextDiv.append(p);
+
+          deviceDivLeftColumn.appendChild(deviceDivLeftColumnTextDiv);
+          deviceDivLeftColumn.classList.add("deviceLeftColumn");
+
+          // right column (class)
+          const deviceDivRightColumn = document.createElement("div");
+          p = document.createElement("p");
+          text = document.createTextNode(`${device.class}`);
+          p.appendChild(text);
+          deviceDivRightColumn.append(p);
+          deviceDivRightColumn.classList.add("deviceRightColumn");
+          deviceDiv.appendChild(deviceDivRightColumn);
+
+          deviceDiv.addEventListener(
+            "click",
+            createFetchDeviceDataCallback(device.device_id)
+          );
+
+          devicesContainerDiv.appendChild(deviceDiv);
+        }
       };
       fetchChartData();
     </script>

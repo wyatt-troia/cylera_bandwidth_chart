@@ -4,6 +4,8 @@ from time import time
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 
+from devices import DEVICES
+
 
 def index(request):
     return render(request, 'api/index.html')
@@ -51,7 +53,11 @@ def get_bandwidths_from_disk(device_id: str, end_time: float, window_time: int, 
         return {"bytes_ts": bytes_ts_res, "bytes_fs": bytes_fs_res, "window_ends": window_ends}
 
 
-def get_bandwidths(request):
+def get_devices():
+    return DEVICES
+
+
+def get_chart_data(request):
     device_id = request.GET.get('device_id', None)
     if not device_id:
         return HttpResponseBadRequest('Must provide device_id.')
@@ -62,4 +68,4 @@ def get_bandwidths(request):
     # return data
     bandwidths = get_bandwidths_from_disk(
         device_id, float(end_time), window_time, num_windows)
-    return JsonResponse(bandwidths)
+    return JsonResponse({**bandwidths, "devices": DEVICES}, safe=False)
